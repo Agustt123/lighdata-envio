@@ -1,30 +1,31 @@
-const getConnection = require('./dbconfig');
 
-class EnviosFlex {
-    constructor(
-       ml_shipment_id,
-        ml_vendedor_id,  ml_qr_seguridad, didCliente,
-        didCuenta,
-        
+const getConnection = require('../../dbconfig');
+// Configuración de la conexión
 
-        
- elim,idbd
-    ) {
-        
-        this.ml_shipment_id = ml_shipment_id;
-        this.ml_vendedor_id = ml_vendedor_id;
-     
-        this.ml_qr_seguridad = ml_qr_seguridad;
-        this.didCliente = didCliente;
-        this.didCuenta = didCuenta;
-
+// Clase EnviosCobranza
+class EnviosCobranza {
+    constructor(didEnvio = null, didCampoCobranza = null, valor = null, quien = null,  elim = null,idbd = null) {
+   
+        this.didEnvio = didEnvio;
+        this.didCampoCobranza = didCampoCobranza;
+        this.valor = valor;
+        this.quien = quien || 0;
         this.elim = elim || 0;
+       
         this.idbd=idbd;
+   
     }
 
+   
+    toJSON() {
+        return JSON.stringify(this);
+    }
+
+    
+    
     async insert() {
         const connection = getConnection(this.idbd);
-        const columnsQuery = 'DESCRIBE envios';
+        const columnsQuery = 'DESCRIBE envios_cobranzas';
 
         return new Promise((resolve, reject) => {
             connection.query(columnsQuery, (err, results) => {
@@ -36,7 +37,7 @@ class EnviosFlex {
                 const filteredColumns = tableColumns.filter(column => this[column] !== undefined);
 
                 const values = filteredColumns.map(column => this[column]);
-                const insertQuery = `INSERT INTO envios (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
+                const insertQuery = `INSERT INTO envios_cobranzas (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
 
                 console.log("Query:", insertQuery);
                 console.log("Values:", values);
@@ -50,7 +51,6 @@ class EnviosFlex {
                 });
             });
         });
-    }
-}
+    }}
 
-module.exports = EnviosFlex;
+module.exports = EnviosCobranza;

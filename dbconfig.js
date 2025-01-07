@@ -36,8 +36,8 @@ const dbConfigsArray = [
    
 ];
 console.log("Config array length:", dbConfigsArray.length);
-console.log(dbConfigsArray[1])
-// Función para obtener la conexión
+console.log(dbConfigsArray[0])
+
 function getConnection(databaseIdentifier) {
     
     let config;

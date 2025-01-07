@@ -1,4 +1,5 @@
-const getConnection = require('./dbconfig');
+
+const getConnection = require('../../dbconfig');
 
 class Envios {
     constructor(

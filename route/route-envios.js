@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const EnviosLogisticaInversa = require('../clase-envios_logisticainversa');  // Importa la clase de logística inversa
-const EnviosObservaciones = require('../clase-envios_observaciones');  // Importa la nueva clase de observaciones
-const EnviosDireccionesDestino = require("../clase-envios_direcciones_destino");
-const EnviosDireccionesRemitente = require('../clase-envios_remitente');
-const EnviosCobranza = require('../Clase-envios_cobranza');
-const Envios = require ("../clase-envios");
-const EnviosFlex= require("../clase-enviosflex");
+const EnviosLogisticaInversa = require('../controller/envios/clase-envios_logisticainversa');  // Importa la clase de logística inversa
+const EnviosObservaciones = require('../controller/envios/clase-envios_observaciones');  // Importa la nueva clase de observaciones
+const EnviosDireccionesDestino = require("../controller/envios/clase-envios_direcciones_destino");
+const EnviosDireccionesRemitente = require('../controller/envios/clase-envios_remitente');
+const EnviosCobranza = require('../controller/envios/Clase-envios_cobranza');
+const Envios = require ("../controller/envios/clase-envios");
+const EnviosFlex= require("../controller/envios/clase-enviosflex");
 
 const validateData= require('../middleware/middleware');
 
@@ -141,7 +141,7 @@ router.post('/insertar-cobranza', (req, res) => {
         .catch((err) => res.status(500).json({ message: err.message }));
 });
 
-router.post('/insertar-envio',dbSelector, async (req, res) => {
+router.post('/insertar-envio', async (req, res) => {
     try {
         const data = req.body;
 
@@ -228,10 +228,10 @@ router.post('/insertar-envioflex', async (req, res) => {
     }
 });
 
-router.post("/cargardatos",dbSelector,async(req,res)=>{
+router.post("/cargardatos",async(req,res)=>{
     try {
         const data = req.body;
-        console.log(typeof validateData); // Debería imprimir "function"
+        console.log(typeof validateData); 
     
         try {
             const email = data.destination_receiver_email;
@@ -258,7 +258,7 @@ router.post("/cargardatos",dbSelector,async(req,res)=>{
             const envioflex = new EnviosFlex(
                 data.ml_shipment_id, 
                data.ml_vendedor_id,  data.ml_qr_seguridad, data.didCliente, 
-               data.didCuenta, data.elim,data.idbd
+               data.didCuenta, data.elim,data.idEmpresa
            );
           
         
@@ -278,7 +278,7 @@ router.post("/cargardatos",dbSelector,async(req,res)=>{
                 data.monto_total_a_cobrar, data.tracking_method, data.tracking_number, data.fecha_venta, 
                 data.destination_receiver_name, data.destination_receiver_phone, 
                 data.destination_receiver_email, data.destination_comments, 
-                data.delivery_preference, data.quien, data.elim,data.idbd
+                data.delivery_preference, data.quien, data.elim,data.idEmpresa
             );
            
         
@@ -299,11 +299,14 @@ router.post("/cargardatos",dbSelector,async(req,res)=>{
                 if (data.envioscobranza){
             
                     const cobranza = new EnviosCobranza(
-                        null,  // ID se autogenera en la base de datos
+                         // ID se autogenera en la base de datos
                         insertId,
                         data.envioscobranza.didCampoCobranza,
                         data.envioscobranza.valor,
-                        data.envioscobranza.quien,data.idbd
+                        data.envioscobranza.quien,
+                        0,
+                       
+                        data.idEmpresa
                     );
                     cobranza.insert();
             
@@ -319,7 +322,7 @@ router.post("/cargardatos",dbSelector,async(req,res)=>{
                     insertId,
                     data.enviosLogisticaInversa.didCampoLogistica, 
                     data.enviosLogisticaInversa.valor,
-                    data.enviosLogisticaInversa.quien,data.idbd);
+                    data.enviosLogisticaInversa.quien,data.idEmpresa);
                 
                 logisticaInversa.insert();
             
@@ -341,7 +344,7 @@ router.post("/cargardatos",dbSelector,async(req,res)=>{
                     (     insertId,
                          observacionDefault, 
                          data.enviosObservaciones.quien, 
-                         data.enviosObservaciones.desde,data.idbd);
+                         data.enviosObservaciones.desde,data.idEmpresa);
                 
                     observaciones.insert();
             }
@@ -366,7 +369,7 @@ router.post("/cargardatos",dbSelector,async(req,res)=>{
                  
                    
                 
-                    data.enviosDireccionesDestino.quien,data.idbd
+                    data.enviosDireccionesDestino.quien,data.idEmpresa
                     
                 );
                 
@@ -391,7 +394,7 @@ router.post("/cargardatos",dbSelector,async(req,res)=>{
                     data.enviosDireccionesRemitente.latitud, 
                     data.enviosDireccionesRemitente.longitud, 
                     data.enviosDireccionesRemitente.obs || 'observaciones light data', 
-                    data.enviosDireccionesRemitente.quien,data.idbd
+                    data.enviosDireccionesRemitente.quien,data.idEmpresa
                 );
                 
                 // Insertar los datos en la base de datos
