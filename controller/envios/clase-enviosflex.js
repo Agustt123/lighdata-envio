@@ -9,7 +9,7 @@ class EnviosFlex {
         
 
         
- elim,idbd
+ elim,idEmpresa
     ) {
         
         this.ml_shipment_id = ml_shipment_id;
@@ -20,11 +20,11 @@ class EnviosFlex {
         this.didCuenta = didCuenta;
 
         this.elim = elim || 0;
-        this.idbd=idbd;
+        this.idEmpresa=idEmpresa;
     }
 
     async insert() {
-        const connection = getConnection(this.idbd);
+        const connection = getConnection(this.idEmpresa);
         const columnsQuery = 'DESCRIBE envios';
 
         return new Promise((resolve, reject) => {

@@ -4,7 +4,7 @@ const getConnection = require('../../dbconfig');
 // Clase EnviosDireccionesDestino
 class EnviosDireccionesDestino {
     constructor(did = null,didEnvio,  calle = null, numero = null, address_line = null, cp = null, localidad = null, provincia = null, pais = null, latitud = null, longitud = null,   
-        quien = null,idbd = null) {
+        quien = null,idEmpresa = null) {
         this.did = did;
         this.didEnvio = didEnvio;
         this.calle = calle;
@@ -16,7 +16,7 @@ class EnviosDireccionesDestino {
         this.pais = pais;
         this.latitud = latitud;
         this.longitud = longitud;
-        this.idbd= idbd;
+        this.idEmpresa= idEmpresa;
        
      
       
@@ -31,7 +31,7 @@ class EnviosDireccionesDestino {
 
     // Método para insertar en la base de datos
     async insert() {
-        const connection = getConnection(this.idbd);
+        const connection = getConnection(this.idEmpresa);
         const columnsQuery = 'DESCRIBE envios_direcciones_destino';
 
         return new Promise((resolve, reject) => {

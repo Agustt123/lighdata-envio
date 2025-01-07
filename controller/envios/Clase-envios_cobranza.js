@@ -4,7 +4,7 @@ const getConnection = require('../../dbconfig');
 
 // Clase EnviosCobranza
 class EnviosCobranza {
-    constructor(didEnvio = null, didCampoCobranza = null, valor = null, quien = null,  elim = null,idbd = null) {
+    constructor(didEnvio = null, didCampoCobranza = null, valor = null, quien = null,  elim = null,idEmpresa = null) {
    
         this.didEnvio = didEnvio;
         this.didCampoCobranza = didCampoCobranza;
@@ -12,7 +12,7 @@ class EnviosCobranza {
         this.quien = quien || 0;
         this.elim = elim || 0;
        
-        this.idbd=idbd;
+        this.idEmpresa=idEmpresa;
    
     }
 
@@ -24,7 +24,7 @@ class EnviosCobranza {
     
     
     async insert() {
-        const connection = getConnection(this.idbd);
+        const connection = getConnection(this.idEmpresa);
         const columnsQuery = 'DESCRIBE envios_cobranzas';
 
         return new Promise((resolve, reject) => {

@@ -12,7 +12,7 @@ class Envios {
         monto_total_a_cobrar, tracking_method, tracking_number, fecha_venta,
         destination_receiver_name, destination_receiver_phone,
         destination_receiver_email, destination_comments, delivery_preference, quien, elim
-    ,idbd=null) {
+    ,idEmpresa=null) {
   
         this.did = did;
         this.didDeposito = didDeposito;
@@ -48,11 +48,11 @@ class Envios {
         this.delivery_preference = delivery_preference;
         this.quien = quien || 0;
         this.elim = elim || 0;
-        this.idbd=idbd;
+        this.idEmpresa=idEmpresa;
     }
 
     async insert() {
-        const connection = getConnection(this.idbd);
+        const connection = getConnection(this.idEmpresa);
         const columnsQuery = 'DESCRIBE envios';
 
         return new Promise((resolve, reject) => {

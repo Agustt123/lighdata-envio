@@ -4,7 +4,7 @@ const getConnection = require('../../dbconfig');
 
 // Clase EnviosDireccionesRemitente
 class EnviosDireccionesRemitente {
-    constructor(did = null, didEnvio = null, calle = null, numero = null, address_line = null, cp = null, localidad = null, provincia = null, pais = null, latitud = null, longitud = null, obs = null, quien = null,idbd= null) {
+    constructor(did = null, didEnvio = null, calle = null, numero = null, address_line = null, cp = null, localidad = null, provincia = null, pais = null, latitud = null, longitud = null, obs = null, quien = null,idEmpresa= null) {
         this.did = did;
         this.didEnvio = didEnvio;
         this.calle = calle;
@@ -20,7 +20,7 @@ class EnviosDireccionesRemitente {
         this.quien = quien;
         this.autofecha = new Date().toISOString().slice(0, 19).replace('T', ' ');
          // Asignando la fecha y hora actual
-         this.idbd= idbd;  
+         this.idEmpresa= idEmpresa;  
     }
 
     // Método para convertir a JSON
@@ -30,7 +30,7 @@ class EnviosDireccionesRemitente {
 
     // Método para insertar en la base de datos
     async insert() {
-        const connection = getConnection(this.idbd);
+        const connection = getConnection(this.idEmpresa);
         const columnsQuery = 'DESCRIBE envios_direcciones_remitente';
 
         return new Promise((resolve, reject) => {

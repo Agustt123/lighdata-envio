@@ -4,12 +4,12 @@ const getConnection = require('../../dbconfig');
 
 // Crear la clase
 class EnviosLogisticaInversa {
-    constructor(didEnvio = null, didCampoLogistica = null, valor = null, quien = null,idbd=null) {
+    constructor(didEnvio = null, didCampoLogistica = null, valor = null, quien = null,idEmpresa=null) {
         this.didEnvio = didEnvio;
         this.didCampoLogistica = didCampoLogistica;
         this.valor = valor;
         this.quien = quien;
-        this.idbd= idbd
+        this.idEmpresa= idEmpresa
     }
 
     // Método para convertir a JSON
@@ -19,7 +19,7 @@ class EnviosLogisticaInversa {
 
     // Método para insertar en la base de datos
     async insert() {
-        const connection = getConnection(this.idbd);
+        const connection = getConnection(this.idEmpresa);
         const columnsQuery = 'DESCRIBE envios_logisticainversa';
 
         return new Promise((resolve, reject) => {

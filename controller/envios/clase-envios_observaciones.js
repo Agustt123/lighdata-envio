@@ -1,13 +1,13 @@
 
 const getConnection = require('../../dbconfig');
 class EnviosObservaciones {
-    constructor(didEnvio = null, observacion = null, quien = null, desde = null,idbd=null) {
+    constructor(didEnvio = null, observacion = null, quien = null, desde = null,idEmpresa=null) {
         this.didEnvio = didEnvio;
         this.observacion = observacion;
         this.quien = quien;
         this.desde = desde;
         this.autofecha = new Date().toISOString().slice(0, 19).replace('T', ' '); // Asignando la fecha y hora actual
-        this.idbd= idbd;    
+        this.idEmpresa= idEmpresa;    
     
     
     }
@@ -19,7 +19,7 @@ class EnviosObservaciones {
 
     // Método para insertar en la base de datos
     async insert() {
-        const connection = getConnection(this.idbd);
+        const connection = getConnection(this.idEmpresa);
         const columnsQuery = 'DESCRIBE envios_observaciones';
 
         return new Promise((resolve, reject) => {
