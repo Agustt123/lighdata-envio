@@ -8,32 +8,11 @@ const EnviosCobranza = require('../Clase-envios_cobranza');
 const Envios = require ("../clase-envios");
 const EnviosFlex= require("../clase-enviosflex");
 
-const validateData= require('./middleware');
-const dbConfigs = [
-    { host: "localhost", port: 5432, database: "logisticaa", user: "logisticaA", password: "logisticaa" },
-    { host: "localhost", port: 5432, database: "logisticab", user: "user_b", password: "password_b" },
-    { host: "localhost", port: 5432, database: "logisticac", user: "user_c", password: "password_c" },
-    { host: "localhost", port: 5432, database: "logisticad", user: "user_d", password: "password_d" },
-];
-
-// Middleware para seleccionar la base de datos según la posición de `idbd` en el cuerpo
-function dbSelector(req, res, next) {
-    const { idbd } = req.body; 
-    console.log(dbConfigs[0]) // Extraemos el idbd del cuerpo de la solicitud
-
-    // Verificamos que el idbd sea válido
-    if (idbd === undefined || idbd < 0 || idbd >= dbConfigs.length) {
-        return res.status(400).json({ message: "iddb no válido" });
-    }
-
-    // Asignamos la configuración de la base de datos a req.dbConfig
-    req.dbConfig = dbConfigs[idbd];
-
-    next();
-}
+const validateData= require('../middleware/middleware');
 
 
-router.use(dbSelector);
+
+
 
 
 
@@ -250,196 +229,197 @@ router.post('/insertar-envioflex', async (req, res) => {
 });
 
 router.post("/cargardatos",dbSelector,async(req,res)=>{
-    const data = req.body;
-    console.log(typeof validateData); // Debería imprimir "function"
-
     try {
-        const email = data.destination_receiver_email;
-        delete data.destination_receiver_email;
-       validateData(data);
-        console.log("Todos los campos son válidos.");
-        if (email) {
-            data.destination_receiver_email = email;
+        const data = req.body;
+        console.log(typeof validateData); // Debería imprimir "function"
+    
+        try {
+            const email = data.destination_receiver_email;
+            delete data.destination_receiver_email;
+           validateData(data);
+            console.log("Todos los campos son válidos.");
+            if (email) {
+                data.destination_receiver_email = email;
+            }
+        } catch (error) {
+            console.error("Error al validar los datos:", error.message);
+            return res.status(400).json({
+                message: "Error en la validación de los datos",
+                error: error.message,
+            });
         }
-    } catch (error) {
-        console.error("Error al validar los datos:", error.message);
-        return res.status(400).json({
-            message: "Error en la validación de los datos",
-            error: error.message,
-        });
-    }
-
     
-    
-    
-    if (data.flex===1){
-    
-    
-        const envioflex = new EnviosFlex(
-            data.ml_shipment_id, 
-           data.ml_vendedor_id,  data.ml_qr_seguridad, data.didCliente, 
-           data.didCuenta, data.elim,data.idbd
-       );
-      
-    
-       // Inserta el registro en la base de datos
-        resultado = await envioflex.insert();
-    }
-    else{
-    
-    
-    
-        const envio = new Envios(
-            data.did, data.didDeposito, data.gtoken, data.flex, data.turbo, data.exterior, data.autofecha, 
-            data.fecha_inicio, data.fechaunix, data.lote, data.ml_shipment_id, 
-            data.ml_vendedor_id, data.ml_venta_id, data.ml_pack_id, data.ml_qr_seguridad, data.didCliente, 
-            data.didCuenta, data.didServicio, data.didSucursalDistribucion, 
-            data.peso, data.volumen, data.bultos, data.valor_declarado, 
-            data.monto_total_a_cobrar, data.tracking_method, data.tracking_number, data.fecha_venta, 
-            data.destination_receiver_name, data.destination_receiver_phone, 
-            data.destination_receiver_email, data.destination_comments, 
-            data.delivery_preference, data.quien, data.elim,data.idbd
-        );
-       
-    
-        // Inserta el registro en la base de datos
-        const resultado = await envio.insert();
-    
-        // Extrae el ID de inserción si está disponible
-        const insertId = resultado.insertId;
-    
-        console.log("Registro insertado con ID:", insertId);
-        
-           // Extrae el ID de inserción si está disponible
-           
         
         
+        
+        if (data.flex===1){
+        
+        
+            const envioflex = new EnviosFlex(
+                data.ml_shipment_id, 
+               data.ml_vendedor_id,  data.ml_qr_seguridad, data.didCliente, 
+               data.didCuenta, data.elim,data.idbd
+           );
           
         
-            if (data.envioscobranza){
+           // Inserta el registro en la base de datos
+            resultado = await envioflex.insert();
+        }
+        else{
         
-                const cobranza = new EnviosCobranza(
-                    null,  // ID se autogenera en la base de datos
+        
+        
+            const envio = new Envios(
+                data.did, data.didDeposito, data.gtoken, data.flex, data.turbo, data.exterior, data.autofecha, 
+                data.fecha_inicio, data.fechaunix, data.lote, data.ml_shipment_id, 
+                data.ml_vendedor_id, data.ml_venta_id, data.ml_pack_id, data.ml_qr_seguridad, data.didCliente, 
+                data.didCuenta, data.didServicio, data.didSucursalDistribucion, 
+                data.peso, data.volumen, data.bultos, data.valor_declarado, 
+                data.monto_total_a_cobrar, data.tracking_method, data.tracking_number, data.fecha_venta, 
+                data.destination_receiver_name, data.destination_receiver_phone, 
+                data.destination_receiver_email, data.destination_comments, 
+                data.delivery_preference, data.quien, data.elim,data.idbd
+            );
+           
+        
+            // Inserta el registro en la base de datos
+            const resultado = await envio.insert();
+        
+            // Extrae el ID de inserción si está disponible
+            const insertId = resultado.insertId;
+        
+            console.log("Registro insertado con ID:", insertId);
+            
+               // Extrae el ID de inserción si está disponible
+               
+            
+            
+              
+            
+                if (data.envioscobranza){
+            
+                    const cobranza = new EnviosCobranza(
+                        null,  // ID se autogenera en la base de datos
+                        insertId,
+                        data.envioscobranza.didCampoCobranza,
+                        data.envioscobranza.valor,
+                        data.envioscobranza.quien,data.idbd
+                    );
+                    cobranza.insert();
+            
+                }
+            
+            
+            
+            // Insertar los datos en la base de datos
+            
+            if (data.enviosLogisticaInversa){
+            
+                const logisticaInversa = new EnviosLogisticaInversa(
                     insertId,
-                    data.envioscobranza.didCampoCobranza,
-                    data.envioscobranza.valor,
-                    data.envioscobranza.quien,data.idbd
+                    data.enviosLogisticaInversa.didCampoLogistica, 
+                    data.enviosLogisticaInversa.valor,
+                    data.enviosLogisticaInversa.quien,data.idbd);
+                
+                logisticaInversa.insert();
+            
+            }
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            if (data.enviosObservaciones){
+            
+                
+                const observacionDefault =data.enviosObservaciones.observacion || "efectivamente la observacion default de light data";
+                    const observaciones = new EnviosObservaciones
+                    (     insertId,
+                         observacionDefault, 
+                         data.enviosObservaciones.quien, 
+                         data.enviosObservaciones.desde,data.idbd);
+                
+                    observaciones.insert();
+            }
+            
+            
+            
+            if (data.enviosDireccionesDestino){
+            
+                
+                const direccionDestino = new EnviosDireccionesDestino(
+                    data.enviosDireccionesDestino.did,
+                    insertId,
+                    data.enviosDireccionesDestino.calle,
+                    data.enviosDireccionesDestino.numero,
+                    data.enviosDireccionesDestino.address_line || `${data.enviosDireccionesDestino.calle} ${data.enviosDireccionesDestino.numero}`,
+                    data.enviosDireccionesDestino.cp,
+                    data.enviosDireccionesDestino.localidad,
+                    data.enviosDireccionesDestino.provincia,
+                    data.enviosDireccionesDestino.pais || "Argentina",
+                    data.enviosDireccionesDestino.latitud,
+                    data.enviosDireccionesDestino.longitud,
+                 
+                   
+                
+                    data.enviosDireccionesDestino.quien,data.idbd
+                    
                 );
-                cobranza.insert();
+                
+                // Insertar los datos en la base de datos
+                direccionDestino.insert();
+            }
+                
+            
+            if(data.enviosDireccionesRemitente){
+            
+            
+                const direccionRemitente = new EnviosDireccionesRemitente(
+                    data.enviosDireccionesRemitente.did, 
+                insertId,
+                    data.enviosDireccionesRemitente.calle, 
+                    data.enviosDireccionesRemitente.numero, 
+                    data.enviosDireccionesRemitente.calle + data.enviosDireccionesRemitente.numero, 
+                    data.enviosDireccionesRemitente.cp, 
+                    data.enviosDireccionesRemitente.localidad, 
+                    data.enviosDireccionesRemitente.provincia, 
+                    data.enviosDireccionesRemitente.pais || "Argentina", 
+                    data.enviosDireccionesRemitente.latitud, 
+                    data.enviosDireccionesRemitente.longitud, 
+                    data.enviosDireccionesRemitente.obs || 'observaciones light data', 
+                    data.enviosDireccionesRemitente.quien,data.idbd
+                );
+                
+                // Insertar los datos en la base de datos
+                direccionRemitente.insert();
+     
+        
+        
+        
+        
+        
         
             }
         
         
         
-        // Insertar los datos en la base de datos
-        
-        if (data.enviosLogisticaInversa){
-        
-            const logisticaInversa = new EnviosLogisticaInversa(
-                insertId,
-                data.enviosLogisticaInversa.didCampoLogistica, 
-                data.enviosLogisticaInversa.valor,
-                data.enviosLogisticaInversa.quien,data.idbd);
-            
-            logisticaInversa.insert();
-        
-        }
         
         
+        res.status(200).json({
+            message: "Registro de envío insertado correctamente",
+        //console.log("Datos recibidos:", data);
+     
         
+    } );}}catch (error) {console.error("Error durante la inserción:", error);
+        res.status(500).send({ message: 'Hubo un error al procesar el registro.' });
         
-        
-        
-        
-        
-        
-        if (data.enviosObservaciones){
-        
-            
-            const observacionDefault =data.enviosObservaciones.observacion || "efectivamente la observacion default de light data";
-                const observaciones = new EnviosObservaciones
-                (     insertId,
-                     observacionDefault, 
-                     data.enviosObservaciones.quien, 
-                     data.enviosObservaciones.desde,data.idbd);
-            
-                observaciones.insert();
-        }
-        
-        
-        
-        if (data.enviosDireccionesDestino){
-        
-            
-            const direccionDestino = new EnviosDireccionesDestino(
-                data.enviosDireccionesDestino.did,
-                insertId,
-                data.enviosDireccionesDestino.calle,
-                data.enviosDireccionesDestino.numero,
-                data.enviosDireccionesDestino.address_line || `${data.enviosDireccionesDestino.calle} ${data.enviosDireccionesDestino.numero}`,
-                data.enviosDireccionesDestino.cp,
-                data.enviosDireccionesDestino.localidad,
-                data.enviosDireccionesDestino.provincia,
-                data.enviosDireccionesDestino.pais || "Argentina",
-                data.enviosDireccionesDestino.latitud,
-                data.enviosDireccionesDestino.longitud,
-             
-               
-            
-                data.enviosDireccionesDestino.quien,data.idbd
-                
-            );
-            
-            // Insertar los datos en la base de datos
-            direccionDestino.insert();
-        }
-            
-        
-        if(data.enviosDireccionesRemitente){
-        
-        
-            const direccionRemitente = new EnviosDireccionesRemitente(
-                data.enviosDireccionesRemitente.did, 
-            insertId,
-                data.enviosDireccionesRemitente.calle, 
-                data.enviosDireccionesRemitente.numero, 
-                data.enviosDireccionesRemitente.calle + data.enviosDireccionesRemitente.numero, 
-                data.enviosDireccionesRemitente.cp, 
-                data.enviosDireccionesRemitente.localidad, 
-                data.enviosDireccionesRemitente.provincia, 
-                data.enviosDireccionesRemitente.pais || "Argentina", 
-                data.enviosDireccionesRemitente.latitud, 
-                data.enviosDireccionesRemitente.longitud, 
-                data.enviosDireccionesRemitente.obs || 'observaciones light data', 
-                data.enviosDireccionesRemitente.quien,data.idbd
-            );
-            
-            // Insertar los datos en la base de datos
-            direccionRemitente.insert();
-        
-        }    
     }
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    res.status(200).json({
-        message: "Registro de envío insertado correctamente",
-    //console.log("Datos recibidos:", data);
- 
         
-    });});
+    });
 
 
 
