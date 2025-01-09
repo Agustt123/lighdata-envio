@@ -11,7 +11,7 @@ async function actualizarEmpresas() {
   try {
     const empresasDataJson = await getFromRedis('empresasData');
     empresasDB = empresasDataJson || [];
-    console.log('Empresas actualizadas desde Redis:', empresasDB);
+  
   } catch (error) {
     console.error('Error al actualizar empresas desde Redis:', error);
   }

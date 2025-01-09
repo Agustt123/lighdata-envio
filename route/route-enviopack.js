@@ -94,114 +94,97 @@ enviospack.post("/enviospackremitente",validateToken, (req,res)=>{
     res.status(200).send({ message: 'Registro insertado correctamente en enviospackremi.' });
 })
 
-enviospack.post("/flujoenviospack", async(req,res)=>{
-    const data= req.body;
+enviospack.post("/flujoenviospack", async (req, res) => {
+    const data = req.body;
 
     try {
         const empresasDataJson = await redisClient.get('empresasData');
-        const empresasDB = JSON.parse(empresasDataJson);  // Parsear el JSON
+        const empresasDB = JSON.parse(empresasDataJson); // Parsear el JSON
 
         // Verificar si la empresa con id 4 existe
-        const empresaId = data.idempresa.toString();
-  // El ID de la empresa que quieres buscar
-        const empresa = empresasDB[empresaId];  // Acceder directamente a la empresa con el id
+        const empresaId = data.idempresa.toString(); // El ID de la empresa que quieres buscar
+        const empresa = empresasDB[empresaId]; // Acceder directamente a la empresa con el id
 
         if (!empresa) {
-            return res.status(404).send({   success: false,
+            return res.status(404).send({
+                success: false,
                 message: 'Hubo un error al procesar el registro.',
-                error: -1 });
+                error: -1
+            });
+        }
+
+        // Validar datos requeridos del destinatario
+        const { provincia, domicilio, localidad } = data.data.destinatario || {};
+        if (!provincia || !domicilio || !localidad) {
+            return res.status(400).send({
+                success: false,
+
+                error: -1
+            });
         }
 
         console.log("Empresa encontrada:", empresa);
-        const enviosPack= new Enviospack(
-           
+        const enviosPack = new Enviospack(
             data.data.did,
             data.data.fecha,
-          
-       
             data.data.observacion,
             data.data.condventa,
-    
             data.quien,
             data.idempresa
-        )
-        const resultado= await enviosPack.insert();
-        const insertId=resultado.did;
-        console.log( "este es el insert id : ",insertId)
-    
-        console.log(enviosPack)
+        );
 
-   
-        
+        const resultado = await enviosPack.insert();
+        const insertId = resultado.did;
+        console.log("Este es el insert id :", insertId);
 
-        if(data.data.destinatario){
+        console.log(enviosPack);
 
-            const enviospackdestinatario= new enviospackDestinatario(
-             insertId,
-             data.data.destinatario.destinatario,
-             data.data.destinatario.cuil,
-             data.data.destinatario.telefono,
-             data.data.destinatario.email,
-             data.data.destinatario.provincia,
-             data.data.destinatario.localidad,
-             data.data.destinatario.domicilio,
-             data.data.destinatario.cp,
-             data.data.destinatario.observacion,
-             data.idempresa
-         
-             
-         )
-     
-         enviospackdestinatario.insert();
+        if (data.data.destinatario) {
+            const enviospackdestinatario = new enviospackDestinatario(
+                insertId,
+                data.data.destinatario.destinatario,
+                data.data.destinatario.cuil,
+                data.data.destinatario.telefono,
+                data.data.destinatario.email,
+                data.data.destinatario.provincia,
+                data.data.destinatario.localidad,
+                data.data.destinatario.domicilio,
+                data.data.destinatario.cp,
+                data.data.destinatario.observacion,
+                data.idempresa
+            );
+
+            await enviospackdestinatario.insert();
         }
 
-     
-        
-    
+        if (data.data.remitente) {
+            const enviospackremitente = new enviospackRemitente(
+                insertId,
+                data.data.remitente.remitente,
+                data.data.remitente.telefono,
+                data.data.remitente.email,
+                data.data.remitente.provincia,
+                data.data.remitente.localidad,
+                data.data.remitente.domicilio,
+                data.data.remitente.cp,
+                data.idempresa
+            );
 
-    if (data.data.remitente){
-        
+            await enviospackremitente.insert();
+        }
 
-        const enviospackremitente= new enviospackRemitente(
-        
-            insertId,    
-            data.data.remitente.remitente,
-            data.data.remitente.telefono,
-            data.data.remitente.email,
-            data.data.remitente.provincia,
-            data.data.remitente.localidad,
-            data.data.remitente.domicilio,
-            data.data.remitente.cp,
-            data.idempresa
-        )
-        enviospackremitente.insert()
-    }
-    
-    
-    
-    
-    
-        return res.status(200).send({ 
-            estado:true,
-            message: 'Registro de envío insertado correctamente',
+        return res.status(200).send({
+            estado: true,
             didEnvio: insertId
-
-
-
-         });
-        
-    } catch (error) {console.error("Error durante la inserción:", error);
-      return   res.status(500).send({ 
-        estado: false,
-        message: 'Hubo un error al procesar el registro.',
-        error: -1
-
-
-      });
-        
+        });
+    } catch (error) {
+        console.error("Error durante la inserción:", error);
+        return res.status(500).send({
+            estado: false,
+            error: -1
+        });
     }
-
-})
+});
 
 
 module.exports = enviospack;

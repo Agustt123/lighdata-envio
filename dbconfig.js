@@ -34,7 +34,7 @@ async function getConnection(idempresa) {
             throw new Error(`No se encontraron datos de empresas en Redis.`);
         }
 
-        console.log("Datos obtenidos desde Redis:", empresasData);
+       // console.log("Datos obtenidos desde Redis:", empresasData);
 
         // Buscar la empresa por su id
         const empresa = empresasData[String(idempresa)];
