@@ -41,10 +41,12 @@ app.use('/api2', enviospack);
 const PORT = 13000;
 
 
+
+
 // Iniciar servidor con Redis
 (async () => {
   try {
-    // Actualizar las empresas antes de iniciar el servidor
+    // Actualizar las empresas antes de inici
     await actualizarEmpresas();
     
     // Iniciar servidor
