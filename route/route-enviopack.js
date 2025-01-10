@@ -94,7 +94,7 @@ enviospack.post("/enviospackremitente",validateToken, (req,res)=>{
     res.status(200).send({ message: 'Registro insertado correctamente en enviospackremi.' });
 })
 
-enviospack.post("/flujoenviospack", async (req, res) => {
+enviospack.post("/api2/flujoenviospack", async (req, res) => {
     const data = req.body;
 
     try {

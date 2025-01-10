@@ -40,6 +40,7 @@ app.use('/api2', enviospack);
 
 const PORT = 3000;
 
+
 // Iniciar servidor con Redis
 (async () => {
   try {
