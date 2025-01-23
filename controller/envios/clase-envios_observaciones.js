@@ -1,71 +1,121 @@
+const { getConnection, getFromRedis } = require('../../dbconfig');
 
-const getConnection = require('../../dbconfig');
+// Crear la clase
 class EnviosObservaciones {
-    constructor(didEnvio = null, observacion = null, quien = null, desde = null,idEmpresa=null) {
-        this.didEnvio = didEnvio;
-        this.observacion = observacion;
-        this.quien = quien;
-        this.desde = desde;
-        this.autofecha = new Date().toISOString().slice(0, 19).replace('T', ' '); // Asignando la fecha y hora actual
-        this.idEmpresa= idEmpresa;    
-    
-    
+  constructor(didEnvio = "", observacion = "", quien = "", desde = "", idEmpresa = null) {
+    this.didEnvio = didEnvio;
+    this.observacion = observacion || "efectivamente la observacion default de light data"; // Valor por defecto si observacion es null
+    this.quien = quien || 0; // Valor por defecto para quien
+    this.desde = desde;
+    this.autofecha = new Date().toISOString().slice(0, 19).replace('T', ' '); // Asignando la fecha y hora actual
+    this.idEmpresa = String(idEmpresa); // Asegurarse de que idEmpresa sea siempre un string
+  }
+
+  // Método para convertir a JSON
+  toJSON() {
+    return JSON.stringify(this);
+  }
+
+  // Método para insertar en la base de datos
+  async insert() {
+    const redisKey = 'empresasData'; // La clave en Redis que contiene todas las empresas
+    console.log("Buscando clave de Redis:", redisKey);
+
+    try {
+      // Obtener todas las empresas desde Redis
+      const empresasDataJson = await getFromRedis(redisKey);
+      const empresasDB = empresasDataJson;
+
+      // Verificar si la empresa en la posición idEmpresa existe
+      const empresa = empresasDB ? empresasDB[this.idEmpresa] : null;
+
+      if (!empresa) {
+        throw new Error(`Configuración no encontrada en Redis para empresa con ID: ${this.idEmpresa}`);
+      }
+
+      console.log("Configuración de la empresa encontrada:", empresa);
+
+      // Obtener la conexión
+      const connection = await getConnection(this.idEmpresa);
+
+      if (this.didEnvio === null) {
+        // Si `didEnvio` es null, crear un nuevo registro
+        return this.createNewRecord(connection);
+      } else {
+        // Si `didEnvio` no es null, verificar si ya existe y manejarlo
+        return this.checkAndUpdateDidEnvio(connection);
+      }
+    } catch (error) {
+      console.error("Error en el método insert:", error.message);
+
+      // Lanzar un error con el formato estándar
+      throw {
+        status: 500,
+        response: {
+          estado: false,
+     
+          error: -1,
+         
+        },
+      };
     }
+  }
 
-    // Método para convertir a JSON
-    toJSON() {
-        return JSON.stringify(this);
-    }
+  checkAndUpdateDidEnvio(connection) {
+    const checkDidEnvioQuery = 'SELECT id FROM envios_observaciones WHERE didEnvio = ?';
+    return new Promise((resolve, reject) => {
+      connection.query(checkDidEnvioQuery, [this.didEnvio], (err, results) => {
+        if (err) {
+          return reject(err);
+        }
 
-    // Método para insertar en la base de datos
-    async insert() {
-        const connection = getConnection(this.idEmpresa);
-        const columnsQuery = 'DESCRIBE envios_observaciones';
+        if (results.length > 0) {
+          // Si `didEnvio` ya existe, actualizarlo
+          const updateQuery = 'UPDATE envios_observaciones SET superado = 1 WHERE didEnvio = ?';
+          connection.query(updateQuery, [this.didEnvio], (updateErr) => {
+            if (updateErr) {
+              return reject(updateErr);
+            }
 
-        return new Promise((resolve, reject) => {
-            connection.query(columnsQuery, (err, results) => {
-                if (err) {
-                    return reject(err);
-                }
+            // Crear un nuevo registro con el mismo `didEnvio`
+            this.createNewRecord(connection).then(resolve).catch(reject);
+          });
+        } else {
+          // Si `didEnvio` no existe, crear un nuevo registro directamente
+          this.createNewRecord(connection).then(resolve).catch(reject);
+        }
+      });
+    });
+  }
 
-                const tableColumns = results.map(column => column.Field);
-                const filteredColumns = tableColumns.filter(column => this[column] !== undefined);
+  createNewRecord(connection) {
+    const columnsQuery = 'DESCRIBE envios_observaciones';
 
-                const values = filteredColumns.map(column => this[column]);
-                const insertQuery = `INSERT INTO envios_observaciones (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
+    return new Promise((resolve, reject) => {
+      connection.query(columnsQuery, (err, results) => {
+        if (err) {
+          return reject(err);
+        }
 
-                console.log("Query:", insertQuery);
-                console.log("Values:", values);
+        const tableColumns = results.map((column) => column.Field);
+        const filteredColumns = tableColumns.filter((column) => this[column] !== undefined);
 
-                connection.query(insertQuery, values, (err, results) => {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        resolve({ insertId: results.insertId });
-                    }
-                });
-            });
+        const values = filteredColumns.map((column) => this[column]);
+        const insertQuery = `INSERT INTO envios_observaciones (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
+
+        console.log("Insert Query:", insertQuery);
+        console.log("Values:", values);
+
+        connection.query(insertQuery, values, (err, results) => {
+          if (err) {
+            return reject(err);
+          }
+
+          resolve({ insertId: results.insertId });
         });
-    }}
+      });
+    });
+  }
+}
 
-// Datos de entrada
-const jsonData = `{
-    "didEnvio": 1,
-    "observacion": "",
-    "quien": 0,
-    "desde": "Sistemass"
-}`;
-
-// Parsear el JSON recibido
-const data = JSON.parse(jsonData);
-console.log(data.desde)
-
-// Crear la instancia de la clase con los datos
-const observaciones = new EnviosObservaciones(data.didEnvio, data.observacion || "efectivamente la observacion default de light data", data.quien, data.desde);
-
-// Insertar los datos en la base de datos
-//observaciones.insert();
-
-// Cerrar la conexión
-//connection.end();
 module.exports = EnviosObservaciones;

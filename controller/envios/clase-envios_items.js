@@ -1,37 +1,30 @@
 const { getConnection, getFromRedis } = require('../../dbconfig');
 
-// Clase EnviosDireccionesDestino
-class EnviosDireccionesDestino {
-  constructor(did = "", didEnvio, calle = null, numero = null, address_line = null, cp = null, localidad = null, provincia = "", pais = "", latitud = "", longitud = "", 
-    quien = null, idEmpresa = null,destination_comments="",delivery_preference="",conHorario="",prioridad="") {
+class EnviosItems {
+  constructor(didEnvio = "", codigo = "", imagen = "", descripcion = "", ml_id = "", dimensions = "", cantidad = "",
+      variacion = "", seller_sku = "", descargado = "", autofecha = "", superado = "", elim = null, idEmpresa = null) {
 
-    
-    this.did = did;
-    this.didEnvio = didEnvio;
-    this.calle = calle;
-    this.numero = numero;
-    this.address_line = calle?.numero; // Asegúrate de que 'calle' sea un objeto con 'numero'
-    this.cp = cp;
-    this.localidad = localidad;
-    this.provincia = provincia;
-    this.pais = pais;
-    this.latitud = latitud;
-    this.longitud = longitud;
-    this.idEmpresa = String(idEmpresa); // Asegurarse de que idEmpresa sea siempre un string
-    this.quien = quien || 0;
-    this.destination_comments=destination_comments;
-    this.delivery_preference=delivery_preference;
-    this.conHorario=conHorario;
-    this.prioridad=prioridad;
+      this.didEnvio = didEnvio;
+      this.codigo = codigo;
+      this.imagen = imagen;
+      this.descripcion = descripcion;
+      this.ml_id = ml_id;
+      this.dimensions = dimensions;
+      this.cantidad = cantidad;
+      this.variacion = variacion;
+      this.seller_sku = seller_sku;
+      this.descargado = descargado;
+      this.autofecha = new Date().toISOString();
+      this.superado = superado;
 
+      this.elim = elim || 0;
+      this.idEmpresa = String(idEmpresa); // Asegurarse de que idEmpresa sea siempre un string
   }
 
-  // Método para convertir a JSON
   toJSON() {
     return JSON.stringify(this);
   }
 
-  // Método para insertar en la base de datos
   async insert() {
     const redisKey = 'empresasData'; // La clave en Redis que contiene todas las empresas
     console.log("Buscando clave de Redis:", redisKey);
@@ -53,11 +46,11 @@ class EnviosDireccionesDestino {
       // Obtener la conexión
       const connection = await getConnection(this.idEmpresa);
 
-      if (this.didEnvio === null) {
-        // Si `didEnvio` es null, crear un nuevo registro
+      if (this.didEnvio === "") {
+        // Si `didEnvio` está vacío, crear un nuevo registro
         return this.createNewRecord(connection);
       } else {
-        // Si `didEnvio` no es null, verificar si ya existe y manejarlo
+        // Si `didEnvio` no está vacío, verificar si ya existe y manejarlo
         return this.checkAndUpdateDidEnvio(connection);
       }
     } catch (error) {
@@ -68,16 +61,14 @@ class EnviosDireccionesDestino {
         status: 500,
         response: {
           estado: false,
- 
           error: -1,
-      
         },
       };
     }
   }
 
   checkAndUpdateDidEnvio(connection) {
-    const checkDidEnvioQuery = 'SELECT id FROM envios_direcciones_destino WHERE didEnvio = ?';
+    const checkDidEnvioQuery = 'SELECT id FROM envios_items WHERE didEnvio = ?';
     return new Promise((resolve, reject) => {
       connection.query(checkDidEnvioQuery, [this.didEnvio], (err, results) => {
         if (err) {
@@ -86,7 +77,7 @@ class EnviosDireccionesDestino {
 
         if (results.length > 0) {
           // Si `didEnvio` ya existe, actualizarlo
-          const updateQuery = 'UPDATE envios_direcciones_destino SET superado = 1 WHERE didEnvio = ?';
+          const updateQuery = 'UPDATE envios_items SET superado = 1 WHERE didEnvio = ?';
           connection.query(updateQuery, [this.didEnvio], (updateErr) => {
             if (updateErr) {
               return reject(updateErr);
@@ -104,7 +95,7 @@ class EnviosDireccionesDestino {
   }
 
   createNewRecord(connection) {
-    const columnsQuery = 'DESCRIBE envios_direcciones_destino';
+    const columnsQuery = 'DESCRIBE envios_items';
 
     return new Promise((resolve, reject) => {
       connection.query(columnsQuery, (err, results) => {
@@ -116,7 +107,7 @@ class EnviosDireccionesDestino {
         const filteredColumns = tableColumns.filter((column) => this[column] !== undefined);
 
         const values = filteredColumns.map((column) => this[column]);
-        const insertQuery = `INSERT INTO envios_direcciones_destino (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
+        const insertQuery = `INSERT INTO envios_items (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
 
         console.log("Insert Query:", insertQuery);
         console.log("Values:", values);
@@ -133,4 +124,4 @@ class EnviosDireccionesDestino {
   }
 }
 
-module.exports = EnviosDireccionesDestino;
+module.exports = EnviosItems;

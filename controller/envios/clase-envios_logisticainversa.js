@@ -1,15 +1,13 @@
-
-const getConnection = require('../../dbconfig');
-
+const { getConnection, getFromRedis } = require('../../dbconfig');
 
 // Crear la clase
 class EnviosLogisticaInversa {
-    constructor(didEnvio = null, didCampoLogistica = null, valor = null, quien = null,idEmpresa=null) {
+    constructor(didEnvio = null, didCampoLogistica = "", valor = "", quien = "", idEmpresa = null) {
         this.didEnvio = didEnvio;
         this.didCampoLogistica = didCampoLogistica;
         this.valor = valor;
-        this.quien = quien;
-        this.idEmpresa= idEmpresa
+        this.quien = quien || 0; // Asignar valor predeterminado a 'quien' si es null
+        this.idEmpresa = String(idEmpresa); // Asegurarse de que idEmpresa sea siempre un string
     }
 
     // Método para convertir a JSON
@@ -19,7 +17,79 @@ class EnviosLogisticaInversa {
 
     // Método para insertar en la base de datos
     async insert() {
-        const connection = getConnection(this.idEmpresa);
+        const redisKey = 'empresasData'; // La clave en Redis que contiene todas las empresas
+        console.log("Buscando clave de Redis:", redisKey);
+
+        try {
+            // Obtener todas las empresas desde Redis
+            const empresasDataJson = await getFromRedis(redisKey);
+            const empresasDB = empresasDataJson;
+
+            // Verificar si la empresa en la posición idEmpresa existe
+            const empresa = empresasDB ? empresasDB[this.idEmpresa] : null;
+
+            if (!empresa) {
+                throw new Error(`Configuración no encontrada en Redis para empresa con ID: ${this.idEmpresa}`);
+            }
+
+            console.log("Configuración de la empresa encontrada:", empresa);
+
+            // Obtener la conexión
+            const connection = await getConnection(this.idEmpresa);
+
+            if (this.didEnvio === null) {
+                // Si `didEnvio` es null, crear un nuevo registro
+                return this.createNewRecord(connection);
+            } else {
+                // Si `didEnvio` no es null, verificar si ya existe y manejarlo
+                return this.checkAndUpdateDidEnvio(connection);
+            }
+        } catch (error) {
+            console.error("Error en el método insert:", error.message);
+
+            // Lanzar un error con el formato estándar
+            throw {
+                status: 500,
+                response: {
+                    estado: false,
+                
+                    error: -1,
+                   
+                },
+            };
+        }
+    }
+
+    // Verificar si existe un registro con didEnvio y actualizarlo si es necesario
+    checkAndUpdateDidEnvio(connection) {
+        const checkDidEnvioQuery = 'SELECT id FROM envios_logisticainversa WHERE didEnvio = ?';
+        return new Promise((resolve, reject) => {
+            connection.query(checkDidEnvioQuery, [this.didEnvio], (err, results) => {
+                if (err) {
+                    return reject(err);
+                }
+
+                if (results.length > 0) {
+                    // Si `didEnvio` ya existe, actualizarlo
+                    const updateQuery = 'UPDATE envios_logisticainversa SET superado = 1 WHERE didEnvio = ?';
+                    connection.query(updateQuery, [this.quien, this.didEnvio], (updateErr) => {
+                        if (updateErr) {
+                            return reject(updateErr);
+                        }
+
+                        // Crear un nuevo registro con el mismo `didEnvio`
+                        this.createNewRecord(connection).then(resolve).catch(reject);
+                    });
+                } else {
+                    // Si `didEnvio` no existe, crear un nuevo registro directamente
+                    this.createNewRecord(connection).then(resolve).catch(reject);
+                }
+            });
+        });
+    }
+
+    // Método para crear un nuevo registro en la base de datos
+    createNewRecord(connection) {
         const columnsQuery = 'DESCRIBE envios_logisticainversa';
 
         return new Promise((resolve, reject) => {
@@ -28,44 +98,39 @@ class EnviosLogisticaInversa {
                     return reject(err);
                 }
 
-                const tableColumns = results.map(column => column.Field);
-                const filteredColumns = tableColumns.filter(column => this[column] !== undefined);
+                const tableColumns = results.map((column) => column.Field);
+                const filteredColumns = tableColumns.filter((column) => this[column] !== undefined);
 
-                const values = filteredColumns.map(column => this[column]);
+                const values = filteredColumns.map((column) => this[column]);
                 const insertQuery = `INSERT INTO envios_logisticainversa (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
 
-                console.log("Query:", insertQuery);
+                console.log("Insert Query:", insertQuery);
                 console.log("Values:", values);
 
                 connection.query(insertQuery, values, (err, results) => {
                     if (err) {
-                        reject(err);
-                    } else {
-                        resolve({ insertId: results.insertId });
+                        return reject(err);
                     }
+
+                    resolve({ insertId: results.insertId });
                 });
             });
         });
-    }}
-// Datos de entrada
+    }
+}
+
+// Datos de entrada (simulando que provienen de un JSON)
 const jsonData = `{
     "didEnvio": 0,
     "didCampoLogistica": 456,
     "valor": 100,
-    "quien": 0
+    "quien": 0,
+    "idEmpresa": 1
 }`;
 
 // Parsear el JSON recibido
 const data = JSON.parse(jsonData);
 
-// Crear la instancia de la clase con los datos
-const logisticaInversa = new EnviosLogisticaInversa(data.didEnvio, data.didCampoLogistica, data.valor, data.quien);
-
-// Insertar los datos en la base de datos
-//logisticaInversa.insert();
-
-// Cerrar la conexión
-//connection.end();
-
+// Crear la instancia de la clase con los dat
 
 module.exports = EnviosLogisticaInversa;

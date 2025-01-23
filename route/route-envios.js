@@ -7,353 +7,128 @@ const EnviosDireccionesRemitente = require('../controller/envios/clase-envios_re
 const EnviosCobranza = require('../controller/envios/Clase-envios_cobranza');
 const Envios = require ("../controller/envios/clase-envios");
 const EnviosFlex= require("../controller/envios/clase-enviosflex");
+const EnviosItems= require("../controller/envios/clase-envios_items")
+const { redisClient,getConnection } = require('../dbconfig');
 
 const validateData= require('../middleware/middleware');
 
+const validarCamposRequeridos = require("../middleware/json")
+
+const camposRequeridos = [
+    "idEmpresa",
+    "flex",
+    "didCliente",
+    "didCuenta",
+    "quien",
+    "elim",
 
 
 
 
 
-
-// Ruta para insertar datos en EnviosLogisticaInversa
-router.post('/enviosLogisticaInversa', (req, res) => {
-    const { didEnvio, didCampoLogistica, valor, quien ,idbd} = req.body;
-
-    const logisticaInversa = new EnviosLogisticaInversa(
-        didEnvio, 
-        didCampoLogistica, 
-        valor, 
-        quien,idbd);
-
-        console.log(logisticaInversa);
-        
-
-    logisticaInversa.insert();
-
-    res.status(200).send({ message: 'Registro insertado correctamente en enviosLogisticaInversa.' });
-});
-
-// Ruta para insertar datos en EnviosObservaciones
-router.post('/enviosObservaciones', (req, res) => {
-    const { didEnvio, observacion, quien, desde,idbd } = req.body;
-
-    // Si no se proporciona una observación, se usa la default
-    const observacionDefault = observacion || "efectivamente la observacion default de light data";
-
-    const observaciones = new EnviosObservaciones(didEnvio, observacionDefault, quien, desde,idbd);
-
-    observaciones.insert();
-
-    res.status(200).send({ message: 'Observación guardada correctamente.' });
-});
-router.post('/insertar-direccion', (req, res) => {
-    const data = req.body;
-  
+    'enviosDireccionesDestino',
+    'enviosDireccionesDestino.numero',
+    'enviosDireccionesDestino.calle',
+    'enviosDireccionesDestino.cp',
+    'enviosDireccionesDestino.localidad'
     
-    console.log("IDBD recibido:", data.idbd);  // Verificamos si está llegando el valor de idbd
-
-    if (!data.idbd) {
-        return res.status(400).json({ message: "Base de datos no seleccionada" });
-    }
-
-    // Crear la instancia de la clase con los datos recibidos
-    const direccionDestino = new EnviosDireccionesDestino(
-        data.did,
-        data.didEnvio,
-        data.calle,
-        data.numero,
-        data.address_line || `${data.calle} ${data.numero}`,
-        data.cp,
-        data.localidad,
-        data.provincia,
-        data.pais || "Argentina",
-        data.latitud,
-        data.longitud,
-        data.quien,
-     
-        data.idbd
-    );
+];
 
 
-    // Insertar los datos en la base de datos
-    direccionDestino.insert();
 
-    // Responder al cliente
-    res.status(200).json({ message: "Registro insertado correctamente" });
-});
 
-router.post('/insertar-direccion-remitente', (req, res) => {
-    const data = req.body;
-    console.log(data)
 
-    // Crear la instancia de la clase con los datos recibidos
-    const direccionRemitente = new EnviosDireccionesRemitente(
-        data.did, 
-        data.didEnvio, 
-        data.calle, 
-        data.numero, 
-        data.calle + data.numero, 
-        data.cp, 
-        data.localidad, 
-        data.provincia, 
-        data.pais || "Argentina", 
-        data.latitud, 
-        data.longitud, 
-        data.obs || 'observaciones light data', 
-        data.quien,
-        data.idbd
-    );
-    console.log(direccionRemitente)
 
-    // Insertar los datos en la base de datos
-    direccionRemitente.insert();
 
-    // Responder al cliente
-    res.status(200).json({ message: "Datos del remitente guardados correctamente" });
-});
-router.post('/insertar-cobranza', (req, res) => {
-    const data = req.body;
 
-    console.log("IDBD recibido:", data.idbd);  // Verificamos si está llegando el valor de idbd
-
-    if (!data.idbd) {
-        return res.status(400).json({ message: "Base de datos no seleccionada" });
-    }
-
-    // Crear la instancia de la clase EnviosCobranza con los datos recibidos
-    const cobranza = new EnviosCobranza(
-        null,  // ID autogenerado en la base de datos
-        data.didEnvio,
-        data.didCampoCobranza,
-        data.valor,
-        data.quien,
-      null,
-      null,
-      null,
-        data.idbd  // Pasamos el idbd para que se use en la conexión
-    );
-    console.log(cobranza)
-
-    // Insertar los datos en la base de datos
-    cobranza.insert()
-        .then(() => res.status(200).json({ message: "Registro de cobranza insertado correctamente" }))
-        .catch((err) => res.status(500).json({ message: err.message }));
-});
-
-router.post('/insertar-envio', async (req, res) => {
+router.post("/cargardatos",validarCamposRequeridos(camposRequeridos), async (req, res) => {
     try {
         const data = req.body;
 
-        // Imprime el cuerpo recibido para depuración
-        console.log("Datos recibidos:", data);
-
-        // Crea una instancia de la clase Envios usando las propiedades del JSON
-        const envio = new Envios(
-            data.did, data.didDeposito, data.gtoken, data.flex, data.turbo, data.exterior, data.autofecha, 
-            data.fecha_inicio, data.fechaunix, data.lote, data.ml_shipment_id, 
-            data.ml_vendedor_id, data.ml_venta_id, data.ml_pack_id, data.ml_qr_seguridad, data.didCliente, 
-            data.didCuenta, data.didServicio, data.didSucursalDistribucion, 
-            data.peso, data.volumen, data.bultos, data.valor_declarado, 
-            data.monto_total_a_cobrar, data.tracking_method, data.tracking_number, data.fecha_venta, 
-            data.destination_receiver_name, data.destination_receiver_phone, 
-            data.destination_receiver_email, data.destination_comments, 
-            data.delivery_preference, data.quien, data.elim,data.idbd
-        );
-       
-
-        // Inserta el registro en la base de datos
-        const resultado = await envio.insert();
-
-        // Extrae el ID de inserción si está disponible
-        const insertId = resultado.insertId;
-
-        console.log("Registro insertado con ID:", insertId);
-
-        // Responde con éxito
-        res.status(200).json({
-            message: "Registro de envío insertado correctamente",
-            insertId: insertId
-        });
-    } catch (error) {
-        console.error("Error al insertar el envío:", error);
-
-        // Responde con error
-        res.status(500).json({
-            message: "Error al insertar el registro de envío",
-            error: error.message
-        });
-    }
-});
-
-router.post('/insertar-envioflex', async (req, res) => {
-    try {
-        const data = req.body;
-
-        // Imprime el cuerpo recibido para depuración
-
-        console.log("Datos recibidos:", data);
-
-        // Crea una instancia de la clase Envios usando las propiedades del JSON
-        const envio = new EnviosFlex(
-             data.ml_shipment_id, 
-            data.ml_vendedor_id,  data.ml_qr_seguridad, data.didCliente, 
-            data.didCuenta, data.elim,data.idbd
-        );
-        console.log(envio);
-        
-       
-
-        // Inserta el registro en la base de datos
-        const resultado = await envio.insert();
-
-        // Extrae el ID de inserción si está disponible
-        const insertId = resultado.insertId;
-
-        console.log("Registro insertado con ID:", insertId);
-
-        // Responde con éxito
-        res.status(200).json({
-            message: "Registro de envío insertado correctamente",
-            insertId: insertId
-        });
-    } catch (error) {
-        console.error("Error al insertar el envío:", error);
-
-        // Responde con error
-        res.status(500).json({
-            message: "Error al insertar el registro de envío",
-            error: error.message
-        });
-    }
-});
-
-router.post("/cargardatos",async(req,res)=>{
-    try {
-        const data = req.body;
-        console.log(typeof validateData); 
-    
-        try {
-            const email = data.destination_receiver_email;
-            delete data.destination_receiver_email;
-           validateData(data);
-            console.log("Todos los campos son válidos.");
-            if (email) {
-                data.destination_receiver_email = email;
-            }
-        } catch (error) {
-            console.error("Error al validar los datos:", error.message);
+        // Validar que los campos requeridos estén presentes
+        if (!data.enviosDireccionesDestino || 
+            !data.enviosDireccionesDestino.calle || 
+            !data.enviosDireccionesDestino.numero || 
+            !data.enviosDireccionesDestino.cp || 
+            !data.enviosDireccionesDestino.localidad) {
+            
             return res.status(400).json({
-                message: "Error en la validación de los datos",
-                error: error.message,
+                message: "Faltan campos obligatorios en la dirección de destino"
             });
         }
-    
+
         
-        
-        
-        if (data.flex===1){
-        
-        
-            const envioflex = new EnviosFlex(
-                data.ml_shipment_id, 
-               data.ml_vendedor_id,  data.ml_qr_seguridad, data.didCliente, 
-               data.didCuenta, data.elim,data.idEmpresa
-           );
-          
-        
-           // Inserta el registro en la base de datos
-            resultado = await envioflex.insert();
+
+        // Ahora que se ha validado la presencia de los campos obligatorios, continúa con la lógica de inserción
+        const email = data.destination_receiver_email;
+        delete data.destination_receiver_email;
+        validateData(data);
+        console.log("Todos los campos son válidos.");
+        if (email) {
+            data.destination_receiver_email = email;
         }
-        else{
-        
-        
-        
-            const envio = new Envios(
-                data.did, data.didDeposito, data.gtoken, data.flex, data.turbo, data.exterior, data.autofecha, 
-                data.fecha_inicio, data.fechaunix, data.lote, data.ml_shipment_id, 
-                data.ml_vendedor_id, data.ml_venta_id, data.ml_pack_id, data.ml_qr_seguridad, data.didCliente, 
-                data.didCuenta, data.didServicio, data.didSucursalDistribucion, 
-                data.peso, data.volumen, data.bultos, data.valor_declarado, 
-                data.monto_total_a_cobrar, data.tracking_method, data.tracking_number, data.fecha_venta, 
-                data.destination_receiver_name, data.destination_receiver_phone, 
-                data.destination_receiver_email, data.destination_comments, 
-                data.delivery_preference, data.quien, data.elim,data.idEmpresa
+
+        if (data.flex === 1) {
+            const envioflex = new EnviosFlex(
+                data.did,
+                data.ml_shipment_id,
+                data.ml_vendedor_id, data.ml_qr_seguridad, data.didCliente,
+                data.didCuenta, data.elim, data.idEmpresa
             );
-           
-        
-            // Inserta el registro en la base de datos
-            const resultado = await envio.insert();
-        
-            // Extrae el ID de inserción si está disponible
-            const insertId = resultado.insertId;
-        
+
+            const resultado = await envioflex.insert();
+            const insertId = resultado.did;
             console.log("Registro insertado con ID:", insertId);
-            
-               // Extrae el ID de inserción si está disponible
-               
-            
-            
-              
-            
-                if (data.envioscobranza){
-            
-                    const cobranza = new EnviosCobranza(
-                         // ID se autogenera en la base de datos
-                        insertId,
-                        data.envioscobranza.didCampoCobranza,
-                        data.envioscobranza.valor,
-                        data.envioscobranza.quien,
-                        0,
-                       
-                        data.idEmpresa
-                    );
-                    cobranza.insert();
-            
-                }
-            
-            
-            
-            // Insertar los datos en la base de datos
-            
-            if (data.enviosLogisticaInversa){
-            
+
+            res.status(200).json({
+                estado: true,
+                didEnvio: insertId
+            });
+        } else {
+            const envio = new Envios(data);
+            const resultado = await envio.insert();
+            const insertId = resultado.did;
+
+            console.log("Registro insertado con did:", insertId);
+
+            // Validación y creación de EnviosCobranza
+            if (data.envioscobranza) {
+                const cobranza = new EnviosCobranza(
+                    insertId,
+                    data.envioscobranza.didCampoCobranza,
+                    data.envioscobranza.valor,
+                    data.envioscobranza.quien,
+                    0,
+                    data.idEmpresa
+                );
+                cobranza.insert();
+            }
+
+            // Validación y creación de EnviosLogisticaInversa
+            if (data.enviosLogisticaInversa) {
                 const logisticaInversa = new EnviosLogisticaInversa(
                     insertId,
-                    data.enviosLogisticaInversa.didCampoLogistica, 
+                    data.enviosLogisticaInversa.didCampoLogistica,
                     data.enviosLogisticaInversa.valor,
-                    data.enviosLogisticaInversa.quien,data.idEmpresa);
-                
+                    data.enviosLogisticaInversa.quien, data.idEmpresa
+                );
                 logisticaInversa.insert();
-            
             }
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            if (data.enviosObservaciones){
-            
-                
-                const observacionDefault =data.enviosObservaciones.observacion || "efectivamente la observacion default de light data";
-                    const observaciones = new EnviosObservaciones
-                    (     insertId,
-                         observacionDefault, 
-                         data.enviosObservaciones.quien, 
-                         data.enviosObservaciones.desde,data.idEmpresa);
-                
-                    observaciones.insert();
+
+            // Validación y creación de EnviosObservaciones
+            if (data.enviosObservaciones) {
+                const observacionDefault = data.enviosObservaciones.observacion || "efectivamente la observacion default de light data";
+                const observaciones = new EnviosObservaciones(
+                    insertId,
+                    observacionDefault,
+                    data.enviosObservaciones.quien,
+                    data.enviosObservaciones.desde, data.idEmpresa
+                );
+                observaciones.insert();
             }
-            
-            
-            
-            if (data.enviosDireccionesDestino){
-            
-                
+
+            // Validación y creación de EnviosDireccionesDestino
+            if (data.enviosDireccionesDestino) {
                 const direccionDestino = new EnviosDireccionesDestino(
                     data.enviosDireccionesDestino.did,
                     insertId,
@@ -366,65 +141,174 @@ router.post("/cargardatos",async(req,res)=>{
                     data.enviosDireccionesDestino.pais || "Argentina",
                     data.enviosDireccionesDestino.latitud,
                     data.enviosDireccionesDestino.longitud,
-                 
-                   
-                
-                    data.enviosDireccionesDestino.quien,data.idEmpresa
-                    
+                    data.enviosDireccionesDestino.quien,
+                    data.idEmpresa,
+                    data.enviosDireccionesDestino.destination_comments,
+                    data.enviosDireccionesDestino.delivery_preference,
+                    data.enviosDireccionesDestino.conHorario,
+                    data.enviosDireccionesDestino.prioridad
                 );
-                
-                // Insertar los datos en la base de datos
                 direccionDestino.insert();
             }
-                
-            
-            if(data.enviosDireccionesRemitente){
-            
-            
+
+            // Validación y creación de EnviosDireccionesRemitente
+            if (data.enviosDireccionesRemitente) {
                 const direccionRemitente = new EnviosDireccionesRemitente(
-                    data.enviosDireccionesRemitente.did, 
-                insertId,
-                    data.enviosDireccionesRemitente.calle, 
-                    data.enviosDireccionesRemitente.numero, 
-                    data.enviosDireccionesRemitente.calle + data.enviosDireccionesRemitente.numero, 
-                    data.enviosDireccionesRemitente.cp, 
-                    data.enviosDireccionesRemitente.localidad, 
-                    data.enviosDireccionesRemitente.provincia, 
-                    data.enviosDireccionesRemitente.pais || "Argentina", 
-                    data.enviosDireccionesRemitente.latitud, 
-                    data.enviosDireccionesRemitente.longitud, 
-                    data.enviosDireccionesRemitente.obs || 'observaciones light data', 
-                    data.enviosDireccionesRemitente.quien,data.idEmpresa
+                    data.enviosDireccionesRemitente.did,
+                    insertId,
+                    data.enviosDireccionesRemitente.calle,
+                    data.enviosDireccionesRemitente.numero,
+                    data.enviosDireccionesRemitente.calle + data.enviosDireccionesRemitente.numero,
+                    data.enviosDireccionesRemitente.cp,
+                    data.enviosDireccionesRemitente.localidad,
+                    data.enviosDireccionesRemitente.provincia,
+                    data.enviosDireccionesRemitente.pais || "Argentina",
+                    data.enviosDireccionesRemitente.latitud,
+                    data.enviosDireccionesRemitente.longitud,
+                    data.enviosDireccionesRemitente.obs || 'observaciones light data',
+                    data.enviosDireccionesRemitente.quien, data.idEmpresa
                 );
-                
-                // Insertar los datos en la base de datos
                 direccionRemitente.insert();
-     
-        
-        
-        
-        
-        
-        
             }
-        
-        
-        
-        
-        
-        res.status(200).json({
-            message: "Registro de envío insertado correctamente",
-        //console.log("Datos recibidos:", data);
-     
-        
-    } );}}catch (error) {console.error("Error durante la inserción:", error);
-        res.status(500).send({ message: 'Hubo un error al procesar el registro.' });
-        
+
+            if(data.enviosItems){
+                const enviosItems= new EnviosItems(
+                    insertId,
+                    data.enviosItems.codigo,
+                    data.imagen,
+                    data.enviosItems.descripcion,
+                    data.enviosItems.ml_id,
+                    data.enviosItems.dimensions,
+                    data.enviosItems.cantidad,
+                    data.enviosItems.variacion,
+                    data.enviosItems.seller_sku,
+                    data.enviosItems.descargado,
+                    data.enviosItems.autofecha,
+                    data.enviosItems.superado,
+                    data.enviosItems.elim,
+                    data.idEmpresa
+                )
+
+            }
+
+            res.status(200).json({
+                estado: true,
+                didEnvio: insertId
+            });
+        }
+    } catch (error) {
+        console.error("Error durante la inserción:", error);
+        return res.status(500).send({
+            estado: false,
+            error: -1
+        });
     }
-        
-    });
+});
 
 
+router.post("/enviosMLredis", async (req, res) => {
+    const data = req.body;
+    const connection = await getConnection(data.idEmpresa);
+
+    try {
+        await connection.beginTransaction();
+
+      
+
+        const email = data.destination_receiver_email;
+        delete data.destination_receiver_email;
+       // validateData(data);
+
+        if (email) {
+            data.destination_receiver_email = email;
+        }
+
+        const newDid = await redisClient.incr("paquete:did");
+
+        // Clave principal en Redis
+        const redisKeyEstadosEnvios = `estadosEnviosML`;
+        const subKey = `${data.ml_vendedor_id}-${data.ml_shipment_id}`;
+        const estadoEnvio = {
+            didEnvio: data.did || newDid,
+            didEmpresa: data.idEmpresa,
+            estado: data.estado || 1 // Estado "procesando"
+        };
+
+        // Obtener el objeto existente o inicializar uno vacío
+        const existingData = await redisClient.get(redisKeyEstadosEnvios);
+        let estadosEnvios = existingData ? JSON.parse(existingData) : {};
+
+        // Agregar o actualizar el estado del envío
+        estadosEnvios[subKey] = estadoEnvio;
+
+        // Guardar todo el objeto actualizado en Redis
+        await redisClient.set(redisKeyEstadosEnvios, JSON.stringify(estadosEnvios));
+
+        // Comentado: Guardar datos en MongoDB
+        /*
+        const envio = new Envios(data, data.did === undefined || data.did === null ? newDid : data.did);
+        const respuesta = await envio.createQuerys();
+        const insertedId = await insertarEnMongo(idcola, data.idEmpresa, 1, "Alta paquete", respuesta);
+        await actualizarColaExterna(data.idEmpresa, idcola, insertedId);
+        */
+
+        // Procesamiento principal
+        if (data.flex === 1) {
+            const envioflex = new EnviosFlex(
+                data.did || newDid, 
+                data.ml_shipment_id,
+                data.ml_vendedor_id, 
+                data.ml_qr_seguridad, 
+                data.didCliente,
+                data.didCuenta, 
+                data.elim, 
+                data.idEmpresa
+            );
+            await envioflex.insert();
+            await connection.commit();
+        } else {
+            // Comentado: Guardar datos en MongoDB
+            /*
+            if (data.envioscobranza) {
+                // Código relacionado con envioscobranza...
+            }
+            if (data.enviosDireccionesRemitente) {
+                // Código relacionado con enviosDireccionesRemitente...
+            }
+            if (data.enviosLogisticaInversa) {
+                // Código relacionado con enviosLogisticaInversa...
+            }
+            if (data.enviosObservaciones) {
+                // Código relacionado con enviosObservaciones...
+            }
+            if (data.enviosDireccionesDestino) {
+                // Código relacionado con enviosDireccionesDestino...
+            }
+            if (data.enviosItems) {
+                // Código relacionado con enviosItems...
+            }
+            */
+
+            await connection.commit();
+        }
+
+        return res.status(200).json({
+            estado: true,
+            didEnvio: newDid 
+        });
+
+    } catch (error) {
+        console.error("Error durante la inserción:", error);
+        await connection.rollback();
+
+        return res.status(500).json({
+            estado: false,
+            error: -1
+        });
+    } finally {
+        connection.end();
+    }
+});
 
 
 
