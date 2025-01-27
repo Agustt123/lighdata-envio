@@ -231,7 +231,10 @@ router.post("/enviosMLredis", async (req, res) => {
         const estadoEnvio = {
             didEnvio: data.did || newDid,
             didEmpresa: data.idEmpresa,
-            estado: data.estado || 1 // Estado "procesando"
+            estado: data.estado || 1,
+              fechaCreacion: new Date().toISOString().slice(0, 19).replace('T', ' '), 
+    fechaActualizacion: ""
+           
         };
 
         // Obtener el objeto existente o inicializar uno vacío
