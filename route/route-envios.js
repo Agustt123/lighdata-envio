@@ -225,17 +225,24 @@ router.post("/enviosMLredis", async (req, res) => {
 
         const newDid = await redisClient.incr("paquete:did");
 
-        // Clave principal en Redis
         const redisKeyEstadosEnvios = `estadosEnviosML`;
         const subKey = `${data.ml_vendedor_id}-${data.ml_shipment_id}`;
+        
+        // Obtener la fecha actual y restar 3 horas
+        let fechaCreacion = new Date();
+        fechaCreacion.setHours(fechaCreacion.getHours() - 3);
+        
+        // Formatear la fecha y hora como 'YYYY-MM-DD HH:MM:SS'
+        let fechaCreacionModificada = fechaCreacion.toISOString().slice(0, 19).replace('T', ' ');
+        
         const estadoEnvio = {
             didEnvio: data.did || newDid,
             didEmpresa: data.idEmpresa,
             estado: data.estado || 1,
-              fechaCreacion: new Date().toISOString().slice(0, 19).replace('T', ' '), 
-    fechaActualizacion: ""
-           
+            fechaCreacion: fechaCreacionModificada, // Fecha con 3 horas menos
+            fechaActualizacion: ""
         };
+        
 
         // Obtener el objeto existente o inicializar uno vacío
         const existingData = await redisClient.get(redisKeyEstadosEnvios);
