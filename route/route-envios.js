@@ -226,33 +226,28 @@ router.post("/enviosMLredis", async (req, res) => {
         const newDid = await redisClient.incr("paquete:did");
 
         const redisKeyEstadosEnvios = `estadosEnviosML`;
-        const subKey = `${data.ml_vendedor_id}-${data.ml_shipment_id}`;
-        
-        // Obtener la fecha actual y restar 3 horas
-        let fechaCreacion = new Date();
-        fechaCreacion.setHours(fechaCreacion.getHours() - 3);
-        
-        // Formatear la fecha y hora como 'YYYY-MM-DD HH:MM:SS'
-        let fechaCreacionModificada = fechaCreacion.toISOString().slice(0, 19).replace('T', ' ');
-        
-        const estadoEnvio = {
-            didEnvio: data.did || newDid,
-            didEmpresa: data.idEmpresa,
-            estado: data.estado || 1,
-            fechaCreacion: fechaCreacionModificada, // Fecha con 3 horas menos
-            fechaActualizacion: ""
-        };
-        
+       // Asignar el valor de subKey
+const subKey = `${data.ml_vendedor_id}-${data.ml_shipment_id}`;
 
-        // Obtener el objeto existente o inicializar uno vacío
-        const existingData = await redisClient.get(redisKeyEstadosEnvios);
-        let estadosEnvios = existingData ? JSON.parse(existingData) : {};
+// Obtener la fecha actual y restar 3 horas
+let fechaCreacion = new Date();
+fechaCreacion.setHours(fechaCreacion.getHours() - 3);
 
-        // Agregar o actualizar el estado del envío
-        estadosEnvios[subKey] = estadoEnvio;
+// Formatear la fecha y hora como 'YYYY-MM-DD HH:MM:SS'
+let fechaCreacionModificada = fechaCreacion.toISOString().slice(0, 19).replace('T', ' ');
 
-        // Guardar todo el objeto actualizado en Redis
-        await redisClient.set(redisKeyEstadosEnvios, JSON.stringify(estadosEnvios));
+// Crear el objeto estadoEnvio
+const estadoEnvio = {
+    didEnvio: data.did || newDid,
+    didEmpresa: data.idEmpresa,
+    estado: data.estado || 1,
+    fechaCreacion: fechaCreacionModificada, // Fecha con 3 horas menos
+    fechaActualizacion: ""
+};
+
+// Guardar el estado de envío en la clave del hash en Redis usando hSet
+await redisClient.hSet(redisKeyEstadosEnvios, subKey, JSON.stringify(estadoEnvio));
+
 
         // Comentado: Guardar datos en MongoDB
         /*
@@ -313,7 +308,9 @@ router.post("/enviosMLredis", async (req, res) => {
 
         return res.status(500).json({
             estado: false,
-            error: -1
+            error: -1,
+            message: error
+            
         });
     } finally {
         connection.end();
