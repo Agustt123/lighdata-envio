@@ -316,7 +316,13 @@ await redisClient.hSet(redisKeyEstadosEnvios, subKey, JSON.stringify(estadoEnvio
         connection.end();
     }
 });
+router.get("/", async (req, res) => {
+    res.status(200).json({
+        estado: true,
+        mesanje: "Hola chris"
+    });
 
+});
 
 
 module.exports = router;
