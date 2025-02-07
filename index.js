@@ -42,6 +42,16 @@ app.use(async (req, res, next) => {
 // Usar las rutas
 app.use('/api', router);
 app.use('/api2', enviospack);
+// Ruta raíz que devuelve un mensaje "Hola"
+app.get('/', (req, res) => {
+  res.status(200).json({
+    estado: true,
+    mesanje: "Hola chris"
+});
+});
+
+
+
 
 const PORT = 13000;
 
